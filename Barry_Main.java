@@ -6,8 +6,12 @@ public class MecanumDriveTeleOp extends OpMode {
     private DcMotor backLeft;
     private DcMotor backRight;
 
-    // 🔽 EASY SPEED CONTROL HERE 🔽
-    private double speedMultiplier = 0.7; // change this while testing
+    private DcMotor intakeMotor;
+    private DcMotor flywheelMotor;
+
+    private double speedMultiplier = 0.7;
+
+    private double flywheelPower = 1.0; 
 
     @Override
     public void init() {
@@ -16,6 +20,9 @@ public class MecanumDriveTeleOp extends OpMode {
         backLeft   = hardwareMap.get(DcMotor.class, "backLeft");
         backRight  = hardwareMap.get(DcMotor.class, "backRight");
 
+        intakeMotor   = hardwareMap.get(DcMotor.class, "intakeMotor");
+        flywheelMotor = hardwareMap.get(DcMotor.class, "flywheelMotor");
+
         frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
         backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
 
@@ -23,6 +30,10 @@ public class MecanumDriveTeleOp extends OpMode {
         frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        flywheelMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
     }
 
     @Override
@@ -49,10 +60,18 @@ public class MecanumDriveTeleOp extends OpMode {
             backRightPower  /= max;
         }
 
-        // 🔽 APPLY SPEED MULTIPLIER 🔽
         frontLeft.setPower(frontLeftPower * speedMultiplier);
         frontRight.setPower(frontRightPower * speedMultiplier);
         backLeft.setPower(backLeftPower * speedMultiplier);
         backRight.setPower(backRightPower * speedMultiplier);
+
+        intakeMotor.setPower(gamepad1.left_trigger);
+
+        if (gamepad1.right_trigger > 0.1) {
+            flywheelMotor.setPower(flywheelPower);
+        } else {
+            flywheelMotor.setPower(0);
+        }
     }
 }
+
