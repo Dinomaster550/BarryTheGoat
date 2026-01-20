@@ -8,31 +8,25 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 @TeleOp(name = "Mecanum Drive TeleOp", group = "Drive")
 public class MecanumDriveTeleOp extends OpMode {
 
-    // Declare motors
+
     private DcMotor frontLeft;
     private DcMotor frontRight;
     private DcMotor backLeft;
     private DcMotor backRight;
 
-    // ===============================
-    // EASY SPEED CONTROL (EDIT THIS)
-    // ===============================
-    private double speedMultiplier = 0.7; // Range: 0.0 – 1.0
+    private double speedMultiplier = 0.7; 
 
     @Override
     public void init() {
 
-        // Map motors from Robot Configuration
         frontLeft  = hardwareMap.get(DcMotor.class, "frontLeft");
         frontRight = hardwareMap.get(DcMotor.class, "frontRight");
         backLeft   = hardwareMap.get(DcMotor.class, "backLeft");
         backRight  = hardwareMap.get(DcMotor.class, "backRight");
 
-        // Reverse left side motors
         frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
         backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        // Brake when power is zero
         frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -42,24 +36,16 @@ public class MecanumDriveTeleOp extends OpMode {
     @Override
     public void loop() {
 
-        // ===============================
-        // CONTROLLER INPUTS
-        // ===============================
-        double y  = -gamepad1.left_stick_y;   // Forward / Back
-        double x  =  gamepad1.left_stick_x;   // Strafe
-        double rx =  gamepad1.right_stick_x;  // Turn
+        double y  = -gamepad1.left_stick_y; 
+        double x  =  gamepad1.left_stick_x;   
+        double rx =  gamepad1.right_stick_x;  
 
-        // ===============================
-        // MECANUM DRIVE CALCULATIONS
-        // ===============================
+
         double frontLeftPower  = y + x + rx;
         double backLeftPower   = y - x + rx;
         double frontRightPower = y - x - rx;
         double backRightPower  = y + x - rx;
 
-        // ===============================
-        // NORMALIZE MOTOR POWERS
-        // ===============================
         double max = Math.max(
                 Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower)),
                 Math.max(Math.abs(backLeftPower), Math.abs(backRightPower))
@@ -72,9 +58,6 @@ public class MecanumDriveTeleOp extends OpMode {
             backRightPower  /= max;
         }
 
-        // ===============================
-        // APPLY SPEED MULTIPLIER
-        // ===============================
         frontLeft.setPower(frontLeftPower * speedMultiplier);
         frontRight.setPower(frontRightPower * speedMultiplier);
         backLeft.setPower(backLeftPower * speedMultiplier);
