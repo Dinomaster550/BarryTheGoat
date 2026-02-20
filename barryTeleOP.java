@@ -43,7 +43,7 @@ public class DecodeTeleOpFull extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
 
-        // ================== HARDWARE MAP ==================
+    
         fl = hardwareMap.get(DcMotorEx.class, "frontLeft");
         fr = hardwareMap.get(DcMotorEx.class, "frontRight");
         bl = hardwareMap.get(DcMotorEx.class, "backLeft");
@@ -58,7 +58,7 @@ public class DecodeTeleOpFull extends LinearOpMode {
 
         flywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        // ================== CAMERA SETUP ==================
+       
         int camViewId = hardwareMap.appContext.getResources().getIdentifier(
                 "cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
 
@@ -83,7 +83,6 @@ public class DecodeTeleOpFull extends LinearOpMode {
 
         while(opModeIsActive()) {
 
-            // ================== MECANUM DRIVE ==================
             double y = -gamepad1.left_stick_y;
             double x = gamepad1.left_stick_x;
             double rx = gamepad1.right_stick_x;
@@ -95,15 +94,14 @@ public class DecodeTeleOpFull extends LinearOpMode {
             fr.setPower((y - x - rx)/denom);
             br.setPower((y + x - rx)/denom);
 
-            // ================== INTAKE ==================
+       
             intake.setPower(1.0); // default ON
             if(gamepad1.left_bumper) intake.setPower(-1.0); // reverse if jam
 
-            // ================== FLYWHEEL ==================
             double flyPower = gamepad1.right_trigger;
             flywheel.setVelocity(flyPower * flywheelTargetRPM);
 
-            // ================== TURRET ==================
+          
             // Auto track using vision pipeline
             double error = pipeline.getTargetX() - 320; // center of 640px
             turretPosition -= error * turretKp;
@@ -116,7 +114,7 @@ public class DecodeTeleOpFull extends LinearOpMode {
             turretPosition = Math.max(0.0, Math.min(1.0, turretPosition));
             turret.setPosition(turretPosition);
 
-            // ================== TELEMETRY ==================
+        
             telemetry.addData("Target X", pipeline.getTargetX());
             telemetry.addData("Turret Pos", turretPosition);
             telemetry.addData("Flywheel RPM", flywheel.getVelocity());
@@ -124,7 +122,7 @@ public class DecodeTeleOpFull extends LinearOpMode {
         }
     }
 
-    // ================== VISION PIPELINE ==================
+
     class GoalPipeline extends OpenCvPipeline {
 
         private double targetX = 320;
