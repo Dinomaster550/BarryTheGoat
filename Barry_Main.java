@@ -40,10 +40,12 @@ public class MecanumDriveTeleOp extends OpMode {
     @Override
     public void loop() {
 
-        double y  = gamepad1.left_stick_y;
-        double x  =  -gamepad1.left_stick_x;
-        double rx =  gamepad1.right_stick_x;
-
+        if (gamepad1.left_stick_y > 0.1 || gamepad1.right_stick_y > 0.1) {
+            double y  = gamepad1.left_stick_y;
+            double x  =  -gamepad1.left_stick_x;
+            double rx =  gamepad1.right_stick_x;
+        }
+        
         double frontLeftPower  = y + x + rx;
         double backLeftPower   = y - x + rx;
         double frontRightPower = y - x - rx;
