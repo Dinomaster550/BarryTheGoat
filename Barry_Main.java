@@ -68,7 +68,7 @@ public class MecanumDriveTeleOp extends OpMode {
         intakeMotor.setPower(gamepad1.left_trigger);
 
         if (gamepad1.right_trigger > 0.1) {
-            flywheelMotor.setPower(flywheelPower);
+            flywheelMotor.setPower(-flywheelPower);
         } else {
             flywheelMotor.setPower(0);
         }
