@@ -9,9 +9,9 @@ public class MecanumDriveTeleOp extends OpMode {
     private DcMotor intakeMotor;
     private DcMotor flywheelMotor;
 
-    private double speedMultiplier = 0.7;
+    private double speedMultiplier = 1.0;
 
-    private double flywheelPower = 1.0; 
+    private double flywheelPower = 90.0; 
 
     @Override
     public void init() {
