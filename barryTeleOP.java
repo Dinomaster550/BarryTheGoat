@@ -96,12 +96,21 @@ public class DecodeTeleOpFull extends LinearOpMode {
 
        
             intake.setPower(1.0); // default ON
-            if(gamepad1.left_bumper) intake.setPower(-1.0); // reverse if jam
-
+            // if(gamepad1.left_bumper) intake.setPower(-1.0); // reverse if jam
+            //IMPORTANT! Line above is commented to not use left bumper(Used in turret for now)
+            
             double flyPower = gamepad1.right_trigger;
             flywheel.setVelocity(flyPower * flywheelTargetRPM);
 
-          
+            //Turret servo
+            if (gamepad1.left_bumper) {
+                turretPosition -= turretKp;
+            }
+
+            if (gamepad1.right_bumper) {
+                turretPosition -= turretKp;
+            }
+            
             // Auto track using vision pipeline
             double error = pipeline.getTargetX() - 320; // center of 640px
             turretPosition -= error * turretKp;
