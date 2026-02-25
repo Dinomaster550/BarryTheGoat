@@ -86,5 +86,16 @@ public class AutoMain extends LinearOpMode {
         waitForStart();
 
         while(opModeIsActive()) {
+            fl.setPower(0.5)
+            fr.setPower(0.5)
+            bl.setPower(0.5)
+            br.setPower(0.5)
+
+            sleep(1000)
+                
+            fl.setPower(0)
+            fr.setPower(0)
+            bl.setPower(0)
+            br.setPower(0)
             
         }
