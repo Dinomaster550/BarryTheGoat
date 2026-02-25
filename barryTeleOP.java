@@ -82,7 +82,7 @@ public class DecodeTeleOpFull extends LinearOpMode {
         waitForStart();
 
         while(opModeIsActive()) {
-
+            
             double y = -gamepad1.left_stick_y;
             double x = gamepad1.left_stick_x;
             double rx = gamepad1.right_stick_x;
@@ -108,18 +108,21 @@ public class DecodeTeleOpFull extends LinearOpMode {
             }
 
             if (gamepad1.right_bumper) {
-                turretPosition -= turretKp;
+                turretPosition += turretKp;
             }
-            
+
+            boolean autoAim = gamepad1.a
             // Auto track using vision pipeline
-            double error = pipeline.getTargetX() - 320; // center of 640px
-            turretPosition -= error * turretKp;
-
-            // Driver override
-            if(Math.abs(gamepad1.right_stick_x) > 0.1){
-                turretPosition += gamepad1.right_stick_x * 0.01;
+            if (autoAim){
+                double error = pipeline.getTargetX() - 320; // center of 640px
+                turretPosition -= error * turretKp;
             }
-
+            // Driver override
+            //if(Math.abs(gamepad1.right_stick_x) > 0.1){
+            //    turretPosition += gamepad1.right_stick_x * 0.01;
+            //}
+            //IMPORTANT! Line above is commented to not use right stick(Used in moving robot and also we use bumpers)
+            
             turretPosition = Math.max(0.0, Math.min(1.0, turretPosition));
             turret.setPosition(turretPosition);
 
