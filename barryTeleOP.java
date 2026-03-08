@@ -1,166 +1,136 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.Servo;
+import java.util.ArrayList;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.hardware.Blinker;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.PIDFCoefficients;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.IMU;
 
-import org.openftc.easyopencv.OpenCvCamera;
-import org.openftc.easyopencv.OpenCvCameraFactory;
-import org.openftc.easyopencv.OpenCvCameraRotation;
-import org.openftc.easyopencv.OpenCvPipeline;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.teamcode.mechanisms.AprilTagWebcam;
 
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.opencv.core.Mat;
-import org.opencv.core.Moments;
-import org.opencv.core.Scalar;
-import org.opencv.imgproc.Imgproc;
+@TeleOp(name = "TeleOp 2026")
+public class TeleOp2026 extends OpMode{
 
-@TeleOp(name="DecodeTeleOpFull")
-public class DecodeTeleOpFull extends LinearOpMode {
+    AprilTagWebcam turretCam, sideCam;
 
-    // Drivetrain motors
-    private DcMotorEx fl, fr, bl, br;
-    private DcMotor intake;
-    private DcMotorEx flywheel;
-    private Servo turret;
+    private Blinker control_Hub;
 
-    // Turret PID
-    private double turretPosition = 0.5;
-    private final double turretKp = 0.002;
+    private DcMotor leftFrontMotor;
+    private DcMotor rightFrontMotor;
+    private DcMotor leftBackMotor;
+    private DcMotor rightBackMotor;
 
-    // Flywheel PIDF for velocity control
-    private final double flywheelTargetRPM = 3000; // adjust to your shooting speed
-    private final double flywheelF = 12.0 / flywheelTargetRPM; // rough feedforward
+    private DcMotorEx accelMotor;
+    private CRServo turret;
 
-    // OpenCV
-    private OpenCvCamera webcam;
-    private GoalPipeline pipeline;
+    private IMU imu;
+
+    private boolean active = true;
+
+    private double rotatedFromIdentity;
+
+    private int goalTagID = 0;
+    private int centerTagID = 1;
+    private int OppTagID = 2;
+
+    private double driveSpeed = 2;
 
     @Override
-    public void runOpMode() throws InterruptedException {
+    public void init(){
 
-    
-        fl = hardwareMap.get(DcMotorEx.class, "frontLeft");
-        fr = hardwareMap.get(DcMotorEx.class, "frontRight");
-        bl = hardwareMap.get(DcMotorEx.class, "backLeft");
-        br = hardwareMap.get(DcMotorEx.class, "backRight");
-
-        intake = hardwareMap.get(DcMotor.class, "intake");
-        flywheel = hardwareMap.get(DcMotorEx.class, "flywheel");
-        turret = hardwareMap.get(Servo.class, "turret");
-
-        fr.setDirection(DcMotor.Direction.REVERSE);
-        br.setDirection(DcMotor.Direction.REVERSE);
-
-        flywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-       
-        int camViewId = hardwareMap.appContext.getResources().getIdentifier(
-                "cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-
-        webcam = OpenCvCameraFactory.getInstance()
-                .createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), camViewId);
-
-        pipeline = new GoalPipeline();
-        webcam.setPipeline(pipeline);
-
-        webcam.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener() {
-            @Override
-            public void onOpened() {
-                webcam.startStreaming(640, 480, OpenCvCameraRotation.UPRIGHT);
-            }
-            @Override
-            public void onError(int errorCode) { }
-        });
-
-        telemetry.addLine("Initialized!");
-        telemetry.update();
-        waitForStart();
-
-        while(opModeIsActive()) {
-            
-            double y = -gamepad1.left_stick_y;
-            double x = gamepad1.left_stick_x;
-            double rx = gamepad1.right_stick_x;
-
-            double denom = Math.max(Math.abs(y)+Math.abs(x)+Math.abs(rx),1);
-
-            fl.setPower((y + x + rx)/denom);
-            bl.setPower((y - x + rx)/denom);
-            fr.setPower((y - x - rx)/denom);
-            br.setPower((y + x - rx)/denom);
-
-       
-            intake.setPower(1.0); // default ON
-            // if(gamepad1.left_bumper) intake.setPower(-1.0); // reverse if jam
-            //IMPORTANT! Line above is commented to not use left bumper(Used in turret for now)
-            
-            double flyPower = gamepad1.right_trigger;
-            flywheel.setVelocity(flyPower * flywheelTargetRPM);
-
-            //Turret servo
-            if (gamepad1.left_bumper) {
-                turretPosition -= turretKp;
-            }
-
-            if (gamepad1.right_bumper) {
-                turretPosition += turretKp;
-            }
-
-            boolean autoAim = gamepad1.a
-            // Auto track using vision pipeline
-            if (autoAim){
-                double error = pipeline.getTargetX() - 320; // center of 640px
-                turretPosition -= error * turretKp;
-            }
-            // Driver override
-            //if(Math.abs(gamepad1.right_stick_x) > 0.1){
-            //    turretPosition += gamepad1.right_stick_x * 0.01;
-            //}
-            //IMPORTANT! Line above is commented to not use right stick(Used in moving robot and also we use bumpers)
-            
-            turretPosition = Math.max(0.0, Math.min(1.0, turretPosition));
-            turret.setPosition(turretPosition);
-
+        turretCam = new AprilTagWebcam();
+        sideCam = new AprilTagWebcam();
         
-            telemetry.addData("Target X", pipeline.getTargetX());
-            telemetry.addData("Turret Pos", turretPosition);
-            telemetry.addData("Flywheel RPM", flywheel.getVelocity());
-            telemetry.update();
-        }
+        hardwareInit(hardwareMap);
+        telemetry.addLine("Hardware Initialised");
+        turretCam.init(hardwareMap, telemetry,"Webcam 1");
+        sideCam.init(hardwareMap, telemetry, "Webcam 2");
+        telemetry.addLine("Cameras Initialised");
+        
+
+        telemetry.addLine("Press to start...");
     }
 
+    @Override
+    public void loop(){
 
-    class GoalPipeline extends OpenCvPipeline {
+        if (gamepad1.dpadDownWasPressed()){active = !active;}
 
-        private double targetX = 320;
+        if (active){
 
-        public double getTargetX() { return targetX; }
-
-        @Override
-        public Mat processFrame(Mat input) {
-
-            Mat hsv = new Mat();
-            Imgproc.cvtColor(input, hsv, Imgproc.COLOR_RGB2HSV);
-
-            // Example: Yellow goal detection
-            Scalar lower = new Scalar(20, 100, 100);
-            Scalar upper = new Scalar(30, 255, 255);
-
-            Mat mask = new Mat();
-            org.opencv.core.Core.inRange(hsv, lower, upper, mask);
-
-            Moments moments = Imgproc.moments(mask);
-
-            if(moments.m00 != 0){
-                targetX = moments.m10 / moments.m00;
-            }
-
-            return mask;
+            turretCam.update();
+            turretUpdate();
+            rotatedFromIdentity = getRotation();
+            
+    
+        
         }
+        else{telemetry.addLine("Press Dpad-Down to activate");}
+    }
+
+    public void hardwareInit(HardwareMap hdwr){
+        turret = hdwr.get(CRServo.class, "servo1");
+
+        leftFrontMotor = hdwr.get(DcMotor.class, "lf");
+        leftBackMotor = hdwr.get(DcMotor.class, "lb");
+        rightFrontMotor = hdwr.get(DcMotor.class, "rf");
+        rightBackMotor = hdwr.get(DcMotor.class, "rb");
+
+        imu = hardwareMap.get(IMU.class, "IMU");
+        imu.resetYaw();
+        
+    }
+    
+    public void turretUpdate(){
+        AprilTagDetection goalTag = turretCam.getTagBySpecificId(goalTagID);
+        
+        if(goalTag != null){
+            double power = -goalTag.ftcPose.bearing/10;
+            turret.setPower(power);
+            telemetry.addData("Servo Power", power);
+        }   
+    }
+    
+    public double getRotation(){
+        AprilTagDetection centerTag = sideCam.getTagBySpecificId(centerTagID);
+        AprilTagDetection goalTag = sideCam.getTagBySpecificId(goalTagID);
+        AprilTagDetection OppTag = sideCam.getTagBySpecificId(OppTagID);
+
+        if (centerTag == null && goalTag == null && OppTag == null){
+
+        }
+
+        ArrayList<Double> angles = new ArrayList<Double>();
+
+        if(centerTag != null){
+            angles.add(centerTag.ftcPose.bearing - Math.PI/2);
+        }
+        
+        
+        if(goalTag != null){
+            angles.add(goalTag.ftcPose.bearing - Math.PI/4);
+        }
+
+        
+        if(OppTag != null){
+            angles.add(OppTag.ftcPose.bearing - Math.PI*3/4);
+        }
+
+        double totalAngle = 0;
+        for (int i = 0; i < angles.size(); i++) {
+            totalAngle += angles.get(i);
+        }
+
+        return (totalAngle/angles.size());
     }
 }
