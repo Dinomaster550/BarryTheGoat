@@ -1,136 +1,92 @@
-package org.firstinspires.ftc.teamcode;
-
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import java.util.ArrayList;
-import com.qualcomm.robotcore.hardware.HardwareMap;
-import org.firstinspires.ftc.robotcore.external.Telemetry;
-import com.qualcomm.robotcore.hardware.CRServo;
+package org.firstinspires.ftc.teamcode.mechanisms;
+import android.util.Size;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.hardware.Blinker;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
+
+import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.IMU;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+import org.firstinspires.ftc.vision.apriltag.*;
+import java.util.ArrayList;
+import java.util.List;
+import com.qualcomm.robotcore.hardware.*;
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 
-import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
-import org.firstinspires.ftc.teamcode.mechanisms.AprilTagWebcam;
+public class AprilTagWebcam {
+    private AprilTagProcessor aprilTagProcessor;
+    private VisionPortal visionPortal;
+    private List<AprilTagDetection> detectedTags = new ArrayList<>();
 
-@TeleOp(name = "TeleOp 2026")
-public class TeleOp2026 extends OpMode{
+    public Telemetry telemetry;
+    public void init(HardwareMap hwMap, Telemetry telemetry, String CameraName) {
+        this.telemetry = telemetry;
 
-    AprilTagWebcam turretCam, sideCam;
+        AprilTagLibrary myLibrary = new AprilTagLibrary.Builder()
+            .addTag(0, "Tag 0", 0.0508, DistanceUnit.CM)
+            .addTag(1, "Tag 1", 0.0508, DistanceUnit.CM)
+            .addTag(2, "Tag 2", 0.0508, DistanceUnit.CM)
+            .build();
 
-    private Blinker control_Hub;
+        aprilTagProcessor = new AprilTagProcessor.Builder()
+                .setDrawTagID(true)
+                .setDrawTagOutline(true)
+                .setDrawAxes(true)
+                .setDrawCubeProjection(true)
+                .setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
+                .setTagLibrary(myLibrary)
+                .setLensIntrinsics(578,578,320,240)
+                .setOutputUnits(DistanceUnit.CM, AngleUnit.RADIANS)
+                .build();
 
-    private DcMotor leftFrontMotor;
-    private DcMotor rightFrontMotor;
-    private DcMotor leftBackMotor;
-    private DcMotor rightBackMotor;
+        VisionPortal.Builder builder = new VisionPortal.Builder();
+        builder.setCamera(hwMap.get(WebcamName.class, CameraName));
+        builder.setCameraResolution(new Size(640, 480));
+        builder.addProcessor(aprilTagProcessor);
 
-    private DcMotorEx accelMotor;
-    private CRServo turret;
-
-    private IMU imu;
-
-    private boolean active = true;
-
-    private double rotatedFromIdentity;
-
-    private int goalTagID = 0;
-    private int centerTagID = 1;
-    private int OppTagID = 2;
-
-    private double driveSpeed = 2;
-
-    @Override
-    public void init(){
-
-        turretCam = new AprilTagWebcam();
-        sideCam = new AprilTagWebcam();
-        
-        hardwareInit(hardwareMap);
-        telemetry.addLine("Hardware Initialised");
-        turretCam.init(hardwareMap, telemetry,"Webcam 1");
-        sideCam.init(hardwareMap, telemetry, "Webcam 2");
-        telemetry.addLine("Cameras Initialised");
-        
-
-        telemetry.addLine("Press to start...");
+        visionPortal = builder.build();
     }
 
-    @Override
-    public void loop(){
-
-        if (gamepad1.dpadDownWasPressed()){active = !active;}
-
-        if (active){
-
-            turretCam.update();
-            turretUpdate();
-            rotatedFromIdentity = getRotation();
-            
-    
-        
+    public void update() {
+            detectedTags = aprilTagProcessor.getDetections();
         }
-        else{telemetry.addLine("Press Dpad-Down to activate");}
+
+    public List<AprilTagDetection> getDetectedTags() {
+            return detectedTags;
+        }
+
+    public void displayDetectionTelemetry(AprilTagDetection detectedId) {
+        if (detectedId ==null) {return;}
+        if (detectedId.metadata != null)
+        {
+            telemetry.addLine(String.format("\n==== (ID %d) %s", detectedId.id, detectedId.metadata.name));
+            telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (cm)", detectedId.ftcPose.x, detectedId.ftcPose.y, detectedId.ftcPose.z));
+            telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)", detectedId.ftcPose.pitch, detectedId.ftcPose.roll, detectedId.ftcPose.yaw));
+            telemetry.addLine(String.format("RBE %6.1f %6.1f %6.1f  (cm, deg, deg)", detectedId.ftcPose.range, detectedId.ftcPose.bearing, detectedId.ftcPose.elevation));
+        } 
+        else 
+        {
+            telemetry.addLine(String.format("\n==== (ID %d) Unknown", detectedId.id));
+            telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detectedId.center.x, detectedId.center.y));
+        }
+    } 
+
+
+    public AprilTagDetection getTagBySpecificId(int id) {
+            for (AprilTagDetection detection : detectedTags) {
+                if (detection.id == id) {
+                    return detection;
+                }
+            }
+            return null;
+        }
+
+    public void stop() {
+            if (visionPortal != null) {
+                visionPortal.close();
+            }
+        }
+
+
     }
-
-    public void hardwareInit(HardwareMap hdwr){
-        turret = hdwr.get(CRServo.class, "servo1");
-
-        leftFrontMotor = hdwr.get(DcMotor.class, "lf");
-        leftBackMotor = hdwr.get(DcMotor.class, "lb");
-        rightFrontMotor = hdwr.get(DcMotor.class, "rf");
-        rightBackMotor = hdwr.get(DcMotor.class, "rb");
-
-        imu = hardwareMap.get(IMU.class, "IMU");
-        imu.resetYaw();
-        
-    }
-    
-    public void turretUpdate(){
-        AprilTagDetection goalTag = turretCam.getTagBySpecificId(goalTagID);
-        
-        if(goalTag != null){
-            double power = -goalTag.ftcPose.bearing/10;
-            turret.setPower(power);
-            telemetry.addData("Servo Power", power);
-        }   
-    }
-    
-    public double getRotation(){
-        AprilTagDetection centerTag = sideCam.getTagBySpecificId(centerTagID);
-        AprilTagDetection goalTag = sideCam.getTagBySpecificId(goalTagID);
-        AprilTagDetection OppTag = sideCam.getTagBySpecificId(OppTagID);
-
-        if (centerTag == null && goalTag == null && OppTag == null){
-
-        }
-
-        ArrayList<Double> angles = new ArrayList<Double>();
-
-        if(centerTag != null){
-            angles.add(centerTag.ftcPose.bearing - Math.PI/2);
-        }
-        
-        
-        if(goalTag != null){
-            angles.add(goalTag.ftcPose.bearing - Math.PI/4);
-        }
-
-        
-        if(OppTag != null){
-            angles.add(OppTag.ftcPose.bearing - Math.PI*3/4);
-        }
-
-        double totalAngle = 0;
-        for (int i = 0; i < angles.size(); i++) {
-            totalAngle += angles.get(i);
-        }
-
-        return (totalAngle/angles.size());
-    }
-}
